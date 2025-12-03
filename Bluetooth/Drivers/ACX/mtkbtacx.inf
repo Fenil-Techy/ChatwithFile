@@ -1,0 +1,169 @@
+;****************************************************************************************
+;   Copyright (c) 2024, MediaTek Technology Corp., All Rights Reserved
+;   All Rights Reserved.
+;   Developed by MediaTek Technology, Corp. -- http://www.mediatek.com
+;****************************************************************************************
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = MEDIA
+ClassGuid   = {4d36e96c-e325-11ce-bfc1-08002be10318}
+Provider    = %ProviderName%
+DriverVer   = 10/07/2024,1.0.0.22
+CatalogFile = mtkbtacx.cat
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+;*****************************************
+; Audio Device Install Section
+;*****************************************
+[ControlFlags]
+ExcludeFromSelect = {1f8c1c07-fa79-421a-936f-e8f4fb2f3300}\Render
+ExcludeFromSelect = {1f8c1c07-fa79-421a-936f-e8f4fb2f3300}\Capture
+
+[Manufacturer]
+%MTK%=MTK,NTAMD64.10.0...26100
+
+[MTK.NTAMD64.10.0...26100]
+; DisplayName                       Section                     DeviceID
+; -----------                       -------                     --------
+%MtkDspDevice.DeviceDesc%           = Audio_Device,             SWC\VEN_0E8D&SID_0001
+%MtkDspRenderDevice.DeviceDesc%     = Audio_Child_Device,       {1f8c1c07-fa79-421a-936f-e8f4fb2f3300}\Render
+%MtkDspCaptureDevice.DeviceDesc%    = Audio_Child_Device,       {1f8c1c07-fa79-421a-936f-e8f4fb2f3300}\Capture
+
+[Audio_Device.NT]
+CopyFiles = Audio_Device.NT.Copy
+
+[Audio_Child_Device.NT]
+CopyFiles = Audio_Device.NT.Copy
+
+[Audio_Device.NT.Copy]
+mtkbtacx.sys
+
+;-------------- Service installation
+
+[Audio_Device.NT.Services]
+AddService = mtkbtacx, %SPSVCINST_ASSOCSERVICE%, Audio_Service_Inst
+
+[Audio_Child_Device.NT.Services]
+;NULL Driver
+AddService = , %SPSVCINST_ASSOCSERVICE%
+
+[Audio_Service_Inst]
+DisplayName    = %MtkDspDevice.DeviceDesc%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\mtkbtacx.sys
+AddReg         = MTKBTACX.AddReg
+
+[MTKBTACX.AddReg]
+HKR,Parameters,SaveAudioDump,0x00010001,0
+
+;For customer branch out should notice the value of FileMax and MaxFileSize.
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, Start, 0x00010001, 0x0
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, BufferSize, 0x00010001, 0xa0
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, ClockType, 0x00010001, 0x1
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, FileMax, 0x00010001, 0x3
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, FileName, 0, "%%SystemRoot%%\System32\LogFiles\WMI\MTK\mtkbtacx.etl"
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, Guid, 0, "{BFDD5EC5-8947-4AA6-B72A-A541CB91B6BA}"
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, LogFileMode, 0x00010001, 0x2
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, MaxFileSize, 0x00010001, 0xc8
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, MaximumBuffers, 0x00010001, 0x28
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX, MinimumBuffers, 0x00010001, 0x2
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX\{BFDD5EC5-8947-4AA6-B72A-A541CB91B6BA}, Enabled, 0x00010001, 0x1
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX\{BFDD5EC5-8947-4AA6-B72A-A541CB91B6BA}, EnableLevel, 0x00010001, 0x5
+HKLM,SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\MTKBTACX\{BFDD5EC5-8947-4AA6-B72A-A541CB91B6BA}, EnableFlags, 0x00010001, 0x7fffffff
+
+[SourceDisksNames]
+1 = %DiskId1%,,,""
+
+[SourceDisksFiles]
+mtkbtacx.sys  = 1,,
+
+
+[Audio_Device.NT.Wdf]
+KmdfService = mtkbtacx, Audio_wdfsect
+[Audio_wdfsect]
+KmdfLibraryVersion = 1.31
+
+;
+; render interfaces: speaker
+;
+[Audio_Device.I.Speaker]
+AddReg = Audio_Device.I.Speaker.AddReg
+
+[Audio_Device.I.Speaker.AddReg]
+HKR,,CLSID,,%Proxy.CLSID%
+HKR,,FriendlyName,,%Audio_Device.Speaker.szPname%
+; The following lines opt-in to pull mode.
+HKR,EP\0,%PKEY_AudioEndpoint_Association%,,%KSNODETYPE_ANY%
+HKR,EP\0,%PKEY_AudioEndpoint_Supports_EventDriven_Mode%,0x00010001,0x1
+
+;
+; capture interfaces: microphone
+;
+[Audio_Device.I.Microphone]
+AddReg=Audio_Device.I.Microphone.AddReg
+[Audio_Device.I.Microphone.AddReg]
+HKR,,CLSID,,%Proxy.CLSID%
+HKR,,FriendlyName,,%Audio_Device.Microphone.szPname%
+; The following lines opt-in to pull mode.
+HKR,EP\0,%PKEY_AudioEndpoint_Association%,,%KSNODETYPE_ANY%
+HKR,EP\0,%PKEY_AudioEndpoint_Supports_EventDriven_Mode%,0x00010001,0x1
+
+;
+; PnP add interface directives for dynamic enumerated audio endpoints. 
+;
+[Audio_Child_Device.NT.Interfaces]
+; Interfaces for render endpoint. capture is used for loopback.
+AddInterface=%KSCATEGORY_AUDIO%,    %KSNAME_Speaker%,  Audio_Device.I.Speaker
+AddInterface=%KSCATEGORY_RENDER%,   %KSNAME_Speaker%,  Audio_Device.I.Speaker
+AddInterface=%KSCATEGORY_REALTIME%, %KSNAME_Speaker%,  Audio_Device.I.Speaker
+;AddInterface=%KSCATEGORY_CAPTURE%, %KSNAME_Speaker%,  Audio_Device.I.Speaker
+
+; Interfaces for mic capture endpoint 
+AddInterface=%KSCATEGORY_AUDIO%,    %KSNAME_Microphone%, Audio_Device.I.Microphone
+AddInterface=%KSCATEGORY_CAPTURE%,  %KSNAME_Microphone%, Audio_Device.I.Microphone
+AddInterface=%KSCATEGORY_REALTIME%, %KSNAME_Microphone%, Audio_Device.I.Microphone
+
+[Strings]
+;
+;Non-localizable
+;
+KSNAME_Speaker      = "Speaker"
+KSNAME_Microphone   = "Microphone"
+
+SPSVCINST_ASSOCSERVICE = 0x00000002
+
+Proxy.CLSID         = "{17CCA71B-ECD7-11D0-B908-00A0C9223196}"
+KSCATEGORY_AUDIO    = "{6994AD04-93EF-11D0-A3CC-00A0C9223196}"
+KSCATEGORY_RENDER   = "{65E8773E-8F56-11D0-A3B9-00A0C9223196}"
+KSCATEGORY_CAPTURE  = "{65E8773D-8F56-11D0-A3B9-00A0C9223196}"
+KSCATEGORY_REALTIME = "{EB115FFC-10C8-4964-831D-6DCB02E6F23F}"
+
+MediaCategories     = "SYSTEM\CurrentControlSet\Control\MediaCategories"
+KSNODETYPE_ANY      = "{00000000-0000-0000-0000-000000000000}"
+
+PKEY_AudioEndpoint_ControlPanelPageProvider  = "{1DA5D803-D492-4EDD-8C23-E0C0FFEE7F0E},1"
+PKEY_AudioEndpoint_Association               = "{1DA5D803-D492-4EDD-8C23-E0C0FFEE7F0E},2"
+PKEY_AudioEndpoint_Supports_EventDriven_Mode = "{1DA5D803-D492-4EDD-8C23-E0C0FFEE7F0E},7"
+PKEY_AudioEndpoint_Default_VolumeInDb        = "{1DA5D803-D492-4EDD-8C23-E0C0FFEE7F0E},9"
+
+;
+;Localizable
+;
+ProviderName                    = "Mediatek Inc."
+MTK                             = "Mediatek Inc."
+DiskId1                         = "MediaTek Bluetooth Audio Device Installation Disk"
+MtkDspDevice.DeviceDesc         = "MediaTek Bluetooth Audio Device"
+MtkDspRenderDevice.DeviceDesc   = "MediaTek Bluetooth LE Render Audio Device"
+MtkDspCaptureDevice.DeviceDesc  = "MediaTek Bluetooth LE Capture Audio Device"
+
+;; friendly names
+Audio_Device.Speaker.szPname    = "MediaTek Bluetooth Audio Device Speaker"
+Audio_Device.Microphone.szPname = "MediaTek Bluetooth Audio Device Microphone"
+
+

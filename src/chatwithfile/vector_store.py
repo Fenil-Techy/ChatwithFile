@@ -2,29 +2,31 @@ import os
 from dotenv import load_dotenv
 from pinecone import Pinecone
 from langchain_pinecone import PineconeVectorStore
-from langchain_ollama import OllamaEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
 load_dotenv()
 
-pinecone_api_key =os.getenv("PINECONE_API_KEY")  
-pinecone_index =os.getenv("PINECONE_INDEX")
-
-dimesnion = 4096  # Dimension of the embeddings, adjust acc to model if necessary
+pinecone_api_key = os.getenv("PINECONE_API_KEY")  
+pinecone_index = os.getenv("PINECONE_INDEX")
 
 def get_vector_store(chunks):
     if not pinecone_api_key or not pinecone_index:
         raise ValueError("PINECONE_API_KEY and PINECONE_INDEX must be set in the environment variables.")
     
-    # Initialize Pinecone
-    pc=Pinecone(api_key=pinecone_api_key)
+    # Initialize Pinecone client
+    pc = Pinecone(api_key=pinecone_api_key)
     
-    # Create or connect to the Pinecone index
-    index =pinecone_index
-    
-    # Initialize Ollama embeddings
-    embeddings = OllamaEmbeddings(model="llama3.1:8b")
-    
-    # Create the vector store
-    vector_store = PineconeVectorStore.from_texts(texts=chunks,index_name=index, embedding=embeddings)
+    # Get index object
+    index = pinecone_index
+
+    # Embeddings
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+    # ✅ Build vector store directly on index
+    vector_store = PineconeVectorStore.from_texts(
+        texts=chunks,
+        embedding=embeddings,
+        index_name=index
+    )
     
     return vector_store

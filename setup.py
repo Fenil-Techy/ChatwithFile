@@ -9,7 +9,7 @@ setup(
         'streamlit',
         'langchain-pinecone',
         'python-dotenv',
-        'langchain_ollama',
+        'langchain_openai',
         'langchain_community',
         'PyPDF2',
         'pinecone',# or langchain_ollama in your case
